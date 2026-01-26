@@ -84,24 +84,14 @@ const Sidebar: React.FC<SidebarProps> = ({ settings, onUpdate, onExport, onPrint
             <button
                 type="button"
                 onClick={onPrint}
-                className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-4 rounded-lg shadow transition-colors flex items-center justify-center gap-2 active:scale-95 transform"
-            >
-                <i className="fa-solid fa-print"></i>
-                הדפסה
-            </button>
-
-            {/* Export Button */}
-            <button
-                type="button"
-                onClick={onExport}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow transition-colors flex items-center justify-center gap-2 active:scale-95 transform"
             >
-                <i className="fa-solid fa-file-pdf"></i>
-                שמור כ-PDF
+                <i className="fa-solid fa-print"></i>
+                הדפסה / שמירה כ-PDF
             </button>
             
             <p className="text-[10px] text-gray-400 text-center leading-tight mb-2">
-              לחיצה על שני הכפתורים תפתח את חלון ההדפסה. בחר ב-"Save as PDF" לשמירה.
+              לשמירה כ-PDF, בחר באפשרות "Save as PDF" בחלון ההדפסה שיפתח.
             </p>
 
             {/* AI Prompt Button */}
