@@ -277,7 +277,8 @@ const Preview: React.FC<PreviewProps> = ({ content, settings }) => {
 
   return (
     <div className="h-full bg-gray-100 overflow-y-auto p-4 md:p-8 custom-scrollbar block" id="preview-container">
-      <style>{generateCustomStyles()}</style>
+      {/* Key prop ensures style tag is re-mounted when theme/settings change, forcing repaint */}
+      <style key={`${settings.theme}-${settings.fontSize}-${settings.lineHeight}-${settings.direction}`}>{generateCustomStyles()}</style>
       
       <div 
         className="mx-auto shadow-xl min-h-[29.7cm] w-full max-w-[21cm] transition-all duration-300 ease-in-out box-border preview-page"

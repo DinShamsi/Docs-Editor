@@ -21,6 +21,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Alef:wght@400;700&family=Assistant:wght@300;400;600;700&family=David+Libre:wght@400;500;700&family=Frank+Ruhl+Libre:wght@400;500;700&family=Heebo:wght@300;400;500;700;800&family=IBM+Plex+Sans+Hebrew:wght@300;400;600&family=Noto+Serif+Hebrew:wght@400;700&family=Roboto:wght@300;400;500&family=Rubik:wght@300;400;500;700&family=Secular+One&family=Varela+Round&display=swap" rel="stylesheet">
 
     <style>
+      /* CRITICAL: Remove Browser Headers/Footers globally */
+      @page {
+        margin: 0;
+        size: auto;
+      }
+
       body {
         margin: 0;
         overflow: hidden; /* App handles scrolling on screen */
@@ -49,12 +55,6 @@
 
       /* --- ROBUST PRINT STYLES --- */
       @media print {
-        /* CRITICAL: Remove Browser Headers/Footers */
-        @page {
-          margin: 0;
-          size: auto;
-        }
-
         /* 1. Reset Body to allow scrolling and full height */
         html, body {
           margin: 0 !important;
@@ -107,7 +107,7 @@
         }
       }
     </style>
-  <script type="importmap">
+<script type="importmap">
 {
   "imports": {
     "react": "https://esm.sh/react@^19.2.3",
