@@ -32,18 +32,27 @@ const App: React.FC = () => {
       return;
     }
 
+    // Cleanup function to be called after print dialog closes
+    const cleanup = () => {
+      if (target) {
+        target.innerHTML = '';
+      }
+      window.removeEventListener('afterprint', cleanup);
+    };
+
+    // Listen for the afterprint event to clean up the DOM
+    window.addEventListener('afterprint', cleanup);
+
     try {
-      // 1. Clear previous content
+      // 1. Clear previous content in case of a cancelled print that didn't fire afterprint
       target.innerHTML = '';
 
       // 2. Clone the Preview Content
       const clone = source.cloneNode(true) as HTMLElement;
       
       // 3. CRITICAL: Remove layout-restricting classes from the root wrapper.
-      // The original 'preview-container' has 'h-full' and 'overflow-y-auto' for screen scrolling.
-      // These cause the print view to collapse to 0 height or hide content.
-      clone.removeAttribute('class'); // Strip all Tailwind classes from the wrapper
-      clone.removeAttribute('id');    // Remove ID to avoid duplicates
+      clone.removeAttribute('class');
+      clone.removeAttribute('id');
       
       // 4. Force Print-Friendly Styles on the wrapper
       clone.style.width = '100%';
@@ -59,6 +68,8 @@ const App: React.FC = () => {
     } catch (error) {
       console.error("Print logic failed:", error);
       alert("אירעה שגיאה בטעינת ההדפסה. אנא נסה שוב.");
+      // Ensure cleanup runs even if an error occurs during the process
+      cleanup();
     }
   }, []);
 
