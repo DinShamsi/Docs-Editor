@@ -78,6 +78,30 @@ const Sidebar: React.FC<SidebarProps> = ({ settings, onUpdate, onExport, onPrint
             </div>
         </div>
 
+        {/* Smart Compression Toggle - NEW */}
+        <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-4 rounded-xl border border-indigo-100 shadow-sm">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <div className={`p-2 rounded-full ${settings.isCompressed ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-500'} transition-colors`}>
+                        <i className="fa-solid fa-minimize"></i>
+                    </div>
+                    <div>
+                        <span className="block text-sm font-bold text-gray-800">דחיסה חכמה</span>
+                        <span className="text-[10px] text-gray-500 block leading-tight">מקסימום תוכן במינימום מקום (2 טורים)</span>
+                    </div>
+                </div>
+                
+                <button 
+                    onClick={() => handleChange('isCompressed', !settings.isCompressed)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${settings.isCompressed ? 'bg-indigo-600' : 'bg-gray-300'}`}
+                >
+                    <span
+                        className={`${settings.isCompressed ? '-translate-x-6' : '-translate-x-1'} inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+                    />
+                </button>
+            </div>
+        </div>
+
         {/* Actions Group */}
         <div className="space-y-3">
             {/* Print Button */}
@@ -128,9 +152,12 @@ const Sidebar: React.FC<SidebarProps> = ({ settings, onUpdate, onExport, onPrint
           </div>
         </div>
 
-        {/* Layout Settings */}
-        <div className="space-y-6 border-t border-gray-200 pt-6">
-          <h3 className="text-sm font-semibold text-gray-900">הגדרות פריסה</h3>
+        {/* Layout Settings (Disabled if Compressed) */}
+        <div className={`space-y-6 border-t border-gray-200 pt-6 transition-opacity ${settings.isCompressed ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+          <h3 className="text-sm font-semibold text-gray-900 flex justify-between">
+            הגדרות פריסה
+            {settings.isCompressed && <span className="text-xs text-indigo-600 font-normal">(מבוטל במצב דחיסה)</span>}
+          </h3>
 
           {/* Direction */}
           <div className="space-y-2">

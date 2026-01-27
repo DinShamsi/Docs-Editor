@@ -22,6 +22,7 @@ export interface DocSettings {
   margins: number; // in mm roughly (padding scale)
   lineHeight: number;
   direction: 'rtl' | 'ltr';
+  isCompressed: boolean; // New Smart Compression Mode
 }
 
 export interface EditorProps {

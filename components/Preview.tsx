@@ -19,8 +19,7 @@ const Preview: React.FC<PreviewProps> = ({ content, settings }) => {
     const themeConfig = THEME_CONFIGS[settings.theme];
     const isColorful = themeConfig.isColorful; 
     
-    // Screen layout: We still want Justify for aesthetics on screen if Academic
-    // But we will override this in @media print (see index.html)
+    // Logic for Text Align
     let textAlign = 'left';
     if (settings.theme === ThemeType.ACADEMIC || settings.theme === ThemeType.CLASSIC || settings.theme === ThemeType.NEWSPAPER) {
         textAlign = 'justify';
@@ -30,11 +29,68 @@ const Preview: React.FC<PreviewProps> = ({ content, settings }) => {
 
     const textColor = themeConfig.textColor || '#1f2937';
 
+    // --- COMPRESSION LOGIC ---
+    // If compressed, we force specific tight values, ignoring some sliders
+    const fontSize = settings.isCompressed ? '10.5px' : `${settings.fontSize}px`;
+    const lineHeight = settings.isCompressed ? '1.15' : settings.lineHeight;
+    const padding = settings.isCompressed ? '5mm' : `${settings.margins * 4}px`; // Minimal padding for compressed
+    
+    const compressedCSS = settings.isCompressed ? `
+        /* Smart 2-Column Layout */
+        .preview-content {
+            column-count: 2;
+            column-gap: 0.6cm;
+            column-rule: 1px solid #e5e7eb;
+        }
+        
+        /* Main Title Spans All Columns */
+        .doc-header {
+            column-span: all;
+            margin-bottom: 0.5em !important;
+            padding-bottom: 0.5em !important;
+        }
+        
+        /* Tighter Headings */
+        .preview-content h1, .preview-content h2, .preview-content h3 {
+            margin-top: 0.6em !important;
+            margin-bottom: 0.2em !important;
+            line-height: 1.1 !important;
+        }
+        .preview-content h1 { font-size: 1.4em !important; }
+        .preview-content h2 { font-size: 1.2em !important; }
+        .preview-content h3 { font-size: 1.1em !important; }
+
+        /* Tighter Paragraphs */
+        .preview-content p, .preview-content ul, .preview-content ol {
+            margin-bottom: 0.4em !important;
+        }
+        
+        /* Compact Tables */
+        .preview-content table {
+            font-size: 0.9em; 
+            margin: 0.5em 0 !important;
+        }
+        .preview-content td, .preview-content th {
+            padding: 2px 4px !important;
+        }
+
+        /* Compact Math */
+        .katex-display {
+            margin: 0.3em 0 !important;
+        }
+
+        /* Prevent breaking inside boxes */
+        .theory, .solution, table, pre, .katex-display {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+    ` : '';
+
     return `
       .preview-content {
         font-family: ${themeConfig.bodyFontFamily};
-        line-height: ${settings.lineHeight};
-        font-size: ${settings.fontSize}px;
+        line-height: ${lineHeight};
+        font-size: ${fontSize};
         color: ${textColor};
         text-align: ${textAlign}; 
         background-color: ${themeConfig.backgroundColor};
@@ -58,7 +114,7 @@ const Preview: React.FC<PreviewProps> = ({ content, settings }) => {
       .preview-content .doc-header h1.doc-title {
         font-family: ${themeConfig.headerFontFamily};
         text-align: center;
-        font-size: 2.2em;
+        font-size: ${settings.isCompressed ? '1.8em' : '2.2em'};
         font-weight: 800;
         margin-top: 0;
         margin-bottom: 0.2rem;
@@ -90,6 +146,16 @@ const Preview: React.FC<PreviewProps> = ({ content, settings }) => {
         margin: 1em 0;
         overflow-x: auto;
         overflow-y: hidden;
+      }
+      
+      /* Force bold math in bold contexts (Headers, Strong, Bold tags) */
+      strong .katex, b .katex, h1 .katex, h2 .katex, h3 .katex, h4 .katex, h5 .katex, h6 .katex, .important .katex {
+         font-weight: bold !important;
+      }
+      
+      /* Ensure KaTeX internal elements inherit bold if forced */
+      .katex .base, .katex .mord {
+         font-weight: inherit !important;
       }
 
       /* Headings */
@@ -169,8 +235,8 @@ const Preview: React.FC<PreviewProps> = ({ content, settings }) => {
       /* Special Boxes */
       .theory, .solution {
         border-radius: 4px;
-        padding: 1em;
-        margin: 1.5em 0;
+        padding: ${settings.isCompressed ? '0.4em' : '1em'};
+        margin: ${settings.isCompressed ? '0.5em 0' : '1.5em 0'};
         unicode-bidi: isolate;
       }
 
@@ -202,6 +268,9 @@ const Preview: React.FC<PreviewProps> = ({ content, settings }) => {
         margin: 0;
         display: block;
       }
+
+      /* INJECT COMPRESSED OVERRIDES AT THE END */
+      ${compressedCSS}
     `;
   };
 
@@ -221,6 +290,8 @@ const Preview: React.FC<PreviewProps> = ({ content, settings }) => {
     const mathSegments: { id: string, tex: string, display: boolean }[] = [];
     
     // Extract Math
+    // Note: We use a simple replacement strategy. 
+    // This allows markdown to process 'around' the math, but prevents markdown inside the math.
     let processedContent = content.replace(/\$\$([\s\S]*?)\$\$/g, (match, tex) => {
       const id = `MATHBLOCK${mathSegments.length}ENDMATHBLOCK`;
       mathSegments.push({ id, tex, display: true });
@@ -271,19 +342,19 @@ const Preview: React.FC<PreviewProps> = ({ content, settings }) => {
 
     previewRef.current.innerHTML = headerHtml + rawHtml;
 
-  }, [content, settings.theme, settings.title, settings.showDate, settings.direction]);
+  }, [content, settings.theme, settings.title, settings.showDate, settings.direction, settings.isCompressed]);
 
   const containerBg = THEME_CONFIGS[settings.theme].backgroundColor;
 
   return (
     <div className="h-full bg-gray-100 overflow-y-auto p-4 md:p-8 custom-scrollbar block" id="preview-container">
-      {/* Key prop ensures style tag is re-mounted when theme/settings change, forcing repaint */}
-      <style key={`${settings.theme}-${settings.fontSize}-${settings.lineHeight}-${settings.direction}`}>{generateCustomStyles()}</style>
+      {/* Key prop ensures style tag is re-mounted when settings change */}
+      <style key={`${settings.theme}-${settings.fontSize}-${settings.lineHeight}-${settings.direction}-${settings.isCompressed}`}>{generateCustomStyles()}</style>
       
       <div 
         className="mx-auto shadow-xl min-h-[29.7cm] w-full max-w-[21cm] transition-all duration-300 ease-in-out box-border preview-page"
         style={{
-          padding: `${settings.margins * 4}px`,
+          padding: settings.isCompressed ? '5mm' : `${settings.margins * 4}px`,
           backgroundColor: containerBg
         }}
       >

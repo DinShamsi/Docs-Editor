@@ -16,6 +16,7 @@ const App: React.FC = () => {
     margins: 10,
     lineHeight: 1.5,
     direction: 'rtl',
+    isCompressed: false, // Default: Off
   });
 
   const updateSettings = useCallback((newSettings: Partial<DocSettings>) => {
