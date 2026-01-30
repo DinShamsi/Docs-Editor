@@ -1,3 +1,4 @@
+import React from 'react';
 
 export enum ThemeType {
   ACADEMIC = 'academic',
@@ -6,35 +7,39 @@ export enum ThemeType {
   STARTUP = 'startup', 
   NATURE = 'nature',   
   CLASSIC = 'classic',
-  // New Themes
-  CLEAN = 'clean',     // Minimalist
-  ELEGANT = 'elegant', // Luxury
-  BOLD = 'bold',       // High Impact
-  SOFT = 'soft',       // Friendly
-  NEWSPAPER = 'newspaper' // Serif Headings, Sans Body
+  CLEAN = 'clean',     
+  ELEGANT = 'elegant', 
+  BOLD = 'bold',       
+  SOFT = 'soft',       
+  NEWSPAPER = 'newspaper' 
 }
 
+export type ViewMode = 'split' | 'editor' | 'preview';
+
 export interface DocSettings {
-  title: string; // Document main title
-  showDate: boolean; // Show current date under title
-  showTOC: boolean; // Show Table of Contents
+  title: string; 
+  showDate: boolean; 
+  showTOC: boolean; 
   theme: ThemeType;
-  fontSize: number; // in px
-  margins: number; // in mm roughly (padding scale)
+  fontSize: number; 
+  margins: number; 
   lineHeight: number;
   direction: 'rtl' | 'ltr';
-  isCompressed: boolean; // New Smart Compression Mode
+  isCompressed: boolean; 
 }
 
 export interface EditorProps {
   value: string;
   onChange: (val: string) => void;
   direction: 'rtl' | 'ltr';
+  onScroll?: (percentage: number) => void;
+  scrollRef?: React.RefObject<HTMLTextAreaElement>;
 }
 
 export interface PreviewProps {
   content: string;
   settings: DocSettings;
+  scrollRef?: React.RefObject<HTMLDivElement>;
 }
 
 export interface SidebarProps {
@@ -42,6 +47,19 @@ export interface SidebarProps {
   onUpdate: (newSettings: Partial<DocSettings>) => void;
   onExport: () => void;
   onPrint: () => void;
-  onSave: () => void; // New
-  hasUnsavedChanges: boolean; // New
+  onSave: () => void;
+  onDownload: () => void; 
+  onImport: (content: string) => void; 
+  onReset: () => void; // New
+  hasUnsavedChanges: boolean;
+  viewMode: ViewMode; 
+  onViewModeChange: (mode: ViewMode) => void; 
+  isSidebarOpen: boolean; // New
+  onToggleSidebar: () => void; // New
+}
+
+export interface ToastNotification {
+  id: number;
+  message: string;
+  type: 'success' | 'info' | 'error';
 }

@@ -494,7 +494,9 @@ const Preview: React.FC<PreviewProps> = ({ content, settings }) => {
            </div>` 
         : '';
 
-    previewRef.current.innerHTML = headerHtml + finalHtml;
+    if (previewRef.current) {
+        previewRef.current.innerHTML = headerHtml + finalHtml;
+    }
     
     // 6. Run auto-scaling for math
     setTimeout(scaleMathElements, 0);

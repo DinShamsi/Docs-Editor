@@ -1,18 +1,13 @@
-import React, { useState } from 'react';
-import { DocSettings, ThemeType } from '../types';
+import React, { useState, useRef } from 'react';
+import { DocSettings, ThemeType, SidebarProps } from '../types';
 import { AI_PROMPT_GUIDE } from '../constants';
 
-interface SidebarProps {
-  settings: DocSettings;
-  onUpdate: (newSettings: Partial<DocSettings>) => void;
-  onExport: () => void;
-  onPrint: () => void;
-  onSave: () => void;
-  hasUnsavedChanges: boolean;
-}
-
-const Sidebar: React.FC<SidebarProps> = ({ settings, onUpdate, onExport, onPrint, onSave, hasUnsavedChanges }) => {
+const Sidebar: React.FC<SidebarProps> = ({ 
+    settings, onUpdate, onPrint, onSave, onDownload, onImport, onReset, 
+    hasUnsavedChanges, viewMode, onViewModeChange, onToggleSidebar 
+}) => {
   const [copyStatus, setCopyStatus] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const handleChange = (key: keyof DocSettings, value: any) => {
     onUpdate({ [key]: value });
@@ -23,6 +18,21 @@ const Sidebar: React.FC<SidebarProps> = ({ settings, onUpdate, onExport, onPrint
       setCopyStatus('הועתק!');
       setTimeout(() => setCopyStatus(''), 2000);
     });
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            if (event.target?.result) {
+                onImport(event.target.result as string);
+            }
+        };
+        reader.readAsText(file);
+    }
+    // Reset input
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   // Theme definition for UI
@@ -42,15 +52,53 @@ const Sidebar: React.FC<SidebarProps> = ({ settings, onUpdate, onExport, onPrint
 
   return (
     <div className="w-80 bg-gray-50 border-r border-gray-200 h-full flex flex-col shadow-lg z-10 no-print">
-      <div className="p-6 border-b border-gray-200 bg-white">
-        <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-          <i className="fa-solid fa-file-pen text-blue-600"></i>
-          עורך אקדמי
-        </h1>
-        <p className="text-gray-500 text-sm mt-1">עריכה, תצוגה מקדימה וייצוא</p>
+      
+      {/* Header & View Toggles */}
+      <div className="p-4 border-b border-gray-200 bg-white sticky top-0 z-10">
+        <div className="flex justify-between items-center mb-4">
+            <h1 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+              <i className="fa-solid fa-file-pen text-blue-600"></i>
+              עורך אקדמי
+            </h1>
+            <button 
+                onClick={onToggleSidebar} 
+                title="סגור סרגל (Ctrl+B)"
+                className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 transition-colors"
+            >
+                <i className="fa-solid fa-chevron-left"></i>
+            </button>
+        </div>
+        
+        {/* View Mode Toggle */}
+        <div className="bg-gray-100 p-1 rounded-lg flex shadow-inner">
+            <button 
+                onClick={() => onViewModeChange('editor')}
+                className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all flex items-center justify-center gap-1 ${viewMode === 'editor' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                title="עורך בלבד"
+            >
+                <i className="fa-solid fa-pen"></i>
+                <span className="hidden sm:inline">עריכה</span>
+            </button>
+            <button 
+                onClick={() => onViewModeChange('split')}
+                className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all flex items-center justify-center gap-1 ${viewMode === 'split' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                title="מסך מפוצל"
+            >
+                <i className="fa-solid fa-columns"></i>
+                <span className="hidden sm:inline">מפוצל</span>
+            </button>
+            <button 
+                onClick={() => onViewModeChange('preview')}
+                className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all flex items-center justify-center gap-1 ${viewMode === 'preview' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                title="תצוגה בלבד"
+            >
+                <i className="fa-solid fa-eye"></i>
+                <span className="hidden sm:inline">תצוגה</span>
+            </button>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-8" dir="rtl">
+      <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar" dir="rtl">
         
         {/* Document Title Input */}
         <div className="space-y-2">
@@ -117,12 +165,13 @@ const Sidebar: React.FC<SidebarProps> = ({ settings, onUpdate, onExport, onPrint
             </div>
         </div>
 
-        {/* Actions Group */}
+        {/* Actions Grid */}
         <div className="grid grid-cols-2 gap-3">
-            {/* Save Button */}
+             {/* Save */}
              <button
                 type="button"
                 onClick={onSave}
+                title="Ctrl+S"
                 className={`w-full font-bold py-3 px-2 rounded-lg shadow transition-all flex items-center justify-center gap-2 active:scale-95 transform relative
                    ${hasUnsavedChanges 
                       ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
@@ -133,19 +182,57 @@ const Sidebar: React.FC<SidebarProps> = ({ settings, onUpdate, onExport, onPrint
                     <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse border border-white"></span>
                 )}
                 <i className={`fa-solid fa-floppy-disk ${hasUnsavedChanges ? 'text-white' : 'text-emerald-600'}`}></i>
-                {hasUnsavedChanges ? 'שמור' : 'נשמר'}
+                <span className="text-sm">{hasUnsavedChanges ? 'שמור' : 'נשמר'}</span>
             </button>
 
-            {/* Print Button */}
+            {/* Print */}
             <button
                 type="button"
                 onClick={onPrint}
+                title="Ctrl+P"
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-2 rounded-lg shadow transition-colors flex items-center justify-center gap-2 active:scale-95 transform"
             >
                 <i className="fa-solid fa-print"></i>
-                הדפס
+                <span className="text-sm">הדפס</span>
+            </button>
+
+             {/* Download */}
+             <button
+                type="button"
+                onClick={onDownload}
+                className="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-medium py-2 px-2 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2"
+            >
+                <i className="fa-solid fa-file-arrow-down text-sky-500"></i>
+                <span className="text-sm">הורד</span>
+            </button>
+
+            {/* Import */}
+             <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                accept=".md,.txt,.markdown" 
+                onChange={handleFileChange}
+            />
+            <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-medium py-2 px-2 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2"
+            >
+                <i className="fa-solid fa-file-import text-orange-500"></i>
+                <span className="text-sm">טען</span>
             </button>
         </div>
+
+        {/* New Document Button */}
+        <button
+            type="button"
+            onClick={onReset}
+            className="w-full bg-white hover:bg-red-50 text-red-600 border border-red-200 font-medium py-2 px-2 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2"
+        >
+            <i className="fa-solid fa-trash-can"></i>
+            מסמך חדש
+        </button>
         
         {/* AI Prompt Button */}
         <button
@@ -202,7 +289,7 @@ const Sidebar: React.FC<SidebarProps> = ({ settings, onUpdate, onExport, onPrint
                     settings.direction === 'rtl' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'
                   }`}
                 >
-                  RTL (מימין)
+                  RTL
                 </button>
                 <button
                   type="button"
@@ -211,7 +298,7 @@ const Sidebar: React.FC<SidebarProps> = ({ settings, onUpdate, onExport, onPrint
                     settings.direction === 'ltr' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'
                   }`}
                 >
-                  LTR (משמאל)
+                  LTR
                 </button>
              </div>
           </div>
