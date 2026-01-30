@@ -76,6 +76,8 @@ Act as an expert academic document formatter. Your task is to take the provided 
 [PASTE YOUR TEXT HERE]
 `;
 
+export const LOCAL_STORAGE_KEY = 'academic_editor_data_v1';
+
 interface ThemeConfig {
   headerFontFamily: string; // Font for H1, H2, H3
   bodyFontFamily: string;   // Font for p, span, li

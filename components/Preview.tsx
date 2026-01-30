@@ -289,9 +289,8 @@ const Preview: React.FC<PreviewProps> = ({ content, settings }) => {
 
     const mathSegments: { id: string, tex: string, display: boolean }[] = [];
     
-    // Extract Math
-    // Note: We use a simple replacement strategy. 
-    // This allows markdown to process 'around' the math, but prevents markdown inside the math.
+    // 1. EXTRACT MATH
+    // We replace math with placeholders to prevent Markdown from messing them up.
     let processedContent = content.replace(/\$\$([\s\S]*?)\$\$/g, (match, tex) => {
       const id = `MATHBLOCK${mathSegments.length}ENDMATHBLOCK`;
       mathSegments.push({ id, tex, display: true });
@@ -304,11 +303,26 @@ const Preview: React.FC<PreviewProps> = ({ content, settings }) => {
       return id;
     });
 
-    // Markdown Parsing
+    // 2. PRE-PROCESS HTML BLOCKS
+    // This fixes the issue where Markdown (like **bold**) inside <div class="theory"> is ignored.
+    // We explicitly find these blocks and parse their inner content as Markdown.
+    const customBlocks = ['theory', 'solution'];
+    customBlocks.forEach(cls => {
+        const regex = new RegExp(`<div class="${cls}">([\\s\\S]*?)<\\/div>`, 'gi');
+        processedContent = processedContent.replace(regex, (match, innerText) => {
+            // Parse inner text. Note: Math placeholders are safe as they are just text IDs here.
+            const parsedInner = marked.parse(innerText) as string;
+            // Return re-constructed HTML. Main parser will treat this as an HTML block and skip it, preserving our parsed inner content.
+            return `<div class="${cls}">\n${parsedInner}\n</div>\n`;
+        });
+    });
+
+    // 3. MAIN MARKDOWN PARSE
+    // Handle the rest of the document (and wrap properly)
     processedContent = processedContent.replace(/<\/div>/gi, '</div>\n\n');
     let rawHtml = marked.parse(processedContent) as string;
     
-    // Restore Math
+    // 4. RESTORE MATH
     mathSegments.forEach(({ id, tex, display }) => {
       try {
         const rendered = window.katex.renderToString(tex, {
@@ -318,6 +332,7 @@ const Preview: React.FC<PreviewProps> = ({ content, settings }) => {
            fleqn: false
         });
         
+        // Wrap in spans/divs to ensure layout stability
         const wrapped = display 
           ? `<div dir="ltr" style="display:block; text-align:center; margin: 1em 0;">${rendered}</div>`
           : `<span dir="ltr" style="display:inline-block;">${rendered}</span>`;

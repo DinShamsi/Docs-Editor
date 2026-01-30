@@ -1,9 +1,9 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import Editor from './components/Editor';
 import Preview from './components/Preview';
 import { DocSettings, ThemeType } from './types';
-import { DEFAULT_CONTENT } from './constants';
+import { DEFAULT_CONTENT, LOCAL_STORAGE_KEY } from './constants';
 
 const App: React.FC = () => {
   const [content, setContent] = useState<string>(DEFAULT_CONTENT);
@@ -19,9 +19,61 @@ const App: React.FC = () => {
     isCompressed: false, // Default: Off
   });
 
+  // Keep track of the last saved state to determine if dirty
+  const [lastSaved, setLastSaved] = useState<{content: string, settings: DocSettings} | null>(null);
+
+  // 1. Load from LocalStorage on Mount
+  useEffect(() => {
+    const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        if (parsed.content && parsed.settings) {
+          setContent(parsed.content);
+          setSettings(parsed.settings);
+          setLastSaved(parsed); // Sync initial state
+        }
+      } catch (e) {
+        console.error("Failed to parse saved data", e);
+        // If error, we just stick to defaults, but set lastSaved to defaults so isDirty logic works
+        setLastSaved({ content: DEFAULT_CONTENT, settings: settings });
+      }
+    } else {
+        // No saved data, set last saved to current defaults
+        setLastSaved({ content: DEFAULT_CONTENT, settings: settings });
+    }
+  }, []);
+
   const updateSettings = useCallback((newSettings: Partial<DocSettings>) => {
     setSettings(prev => ({ ...prev, ...newSettings }));
   }, []);
+
+  // 2. Save Functionality
+  const handleSave = useCallback(() => {
+    const dataToSave = { content, settings };
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dataToSave));
+    setLastSaved(dataToSave);
+  }, [content, settings]);
+
+  // 3. Check for unsaved changes
+  const hasUnsavedChanges = lastSaved 
+    ? (content !== lastSaved.content || JSON.stringify(settings) !== JSON.stringify(lastSaved.settings))
+    : false;
+
+  // 4. Warn on exit if unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = ''; // Standard for Chrome/Firefox
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [hasUnsavedChanges]);
 
   const handlePrintExport = useCallback(() => {
     const source = document.getElementById('preview-container');
@@ -32,7 +84,6 @@ const App: React.FC = () => {
       return;
     }
 
-    // Cleanup function to be called after print dialog closes
     const cleanup = () => {
       if (target) {
         target.innerHTML = '';
@@ -40,35 +91,27 @@ const App: React.FC = () => {
       window.removeEventListener('afterprint', cleanup);
     };
 
-    // Listen for the afterprint event to clean up the DOM
     window.addEventListener('afterprint', cleanup);
 
     try {
-      // 1. Clear previous content in case of a cancelled print that didn't fire afterprint
       target.innerHTML = '';
-
-      // 2. Clone the Preview Content
       const clone = source.cloneNode(true) as HTMLElement;
       
-      // 3. CRITICAL: Remove layout-restricting classes from the root wrapper.
       clone.removeAttribute('class');
       clone.removeAttribute('id');
       
-      // 4. Force Print-Friendly Styles on the wrapper
       clone.style.width = '100%';
       clone.style.height = 'auto';
       clone.style.overflow = 'visible';
       clone.style.position = 'relative';
       clone.style.display = 'block';
 
-      // 5. Append and Print
       target.appendChild(clone);
       window.print();
       
     } catch (error) {
       console.error("Print logic failed:", error);
       alert("אירעה שגיאה בטעינת ההדפסה. אנא נסה שוב.");
-      // Ensure cleanup runs even if an error occurs during the process
       cleanup();
     }
   }, []);
@@ -82,7 +125,9 @@ const App: React.FC = () => {
           settings={settings} 
           onUpdate={updateSettings}
           onExport={handlePrintExport} 
-          onPrint={handlePrintExport} 
+          onPrint={handlePrintExport}
+          onSave={handleSave}
+          hasUnsavedChanges={hasUnsavedChanges}
         />
       </div>
 

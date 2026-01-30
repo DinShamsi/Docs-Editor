@@ -7,9 +7,11 @@ interface SidebarProps {
   onUpdate: (newSettings: Partial<DocSettings>) => void;
   onExport: () => void;
   onPrint: () => void;
+  onSave: () => void;
+  hasUnsavedChanges: boolean;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ settings, onUpdate, onExport, onPrint }) => {
+const Sidebar: React.FC<SidebarProps> = ({ settings, onUpdate, onExport, onPrint, onSave, hasUnsavedChanges }) => {
   const [copyStatus, setCopyStatus] = useState<string>('');
   
   const handleChange = (key: keyof DocSettings, value: any) => {
@@ -78,7 +80,7 @@ const Sidebar: React.FC<SidebarProps> = ({ settings, onUpdate, onExport, onPrint
             </div>
         </div>
 
-        {/* Smart Compression Toggle - NEW */}
+        {/* Smart Compression Toggle */}
         <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-4 rounded-xl border border-indigo-100 shadow-sm">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -103,27 +105,44 @@ const Sidebar: React.FC<SidebarProps> = ({ settings, onUpdate, onExport, onPrint
         </div>
 
         {/* Actions Group */}
-        <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+            {/* Save Button */}
+             <button
+                type="button"
+                onClick={onSave}
+                className={`w-full font-bold py-3 px-2 rounded-lg shadow transition-all flex items-center justify-center gap-2 active:scale-95 transform relative
+                   ${hasUnsavedChanges 
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
+                      : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50'
+                   }`}
+            >
+                {hasUnsavedChanges && (
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse border border-white"></span>
+                )}
+                <i className={`fa-solid fa-floppy-disk ${hasUnsavedChanges ? 'text-white' : 'text-emerald-600'}`}></i>
+                {hasUnsavedChanges ? 'שמור' : 'נשמר'}
+            </button>
+
             {/* Print Button */}
             <button
                 type="button"
                 onClick={onPrint}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow transition-colors flex items-center justify-center gap-2 active:scale-95 transform"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-2 rounded-lg shadow transition-colors flex items-center justify-center gap-2 active:scale-95 transform"
             >
                 <i className="fa-solid fa-print"></i>
                 הדפס
             </button>
-            
-            {/* AI Prompt Button */}
-            <button
-                type="button"
-                onClick={handleCopyPrompt}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow transition-colors flex items-center justify-center gap-2 text-sm mt-2"
-            >
-                <i className="fa-solid fa-robot"></i>
-                {copyStatus || 'העתק הנחיה ל-AI'}
-            </button>
         </div>
+        
+        {/* AI Prompt Button */}
+        <button
+            type="button"
+            onClick={handleCopyPrompt}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow transition-colors flex items-center justify-center gap-2 text-sm mt-0"
+        >
+            <i className="fa-solid fa-robot"></i>
+            {copyStatus || 'העתק הנחיה ל-AI'}
+        </button>
 
         {/* Theme Selection */}
         <div className="space-y-3">

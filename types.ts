@@ -40,5 +40,7 @@ export interface SidebarProps {
   settings: DocSettings;
   onUpdate: (newSettings: Partial<DocSettings>) => void;
   onExport: () => void;
-  onPrint: () => void; // New prop for robust printing
+  onPrint: () => void;
+  onSave: () => void; // New
+  hasUnsavedChanges: boolean; // New
 }
