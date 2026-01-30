@@ -11,6 +11,7 @@ const App: React.FC = () => {
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   
   // Refs for Scroll Sync
   const editorRef = useRef<HTMLTextAreaElement>(null);
@@ -40,6 +41,21 @@ const App: React.FC = () => {
     }, 3000);
   };
 
+  // --- Resize Handler ---
+  useEffect(() => {
+    const handleResize = () => {
+        const mobile = window.innerWidth < 768;
+        setIsMobile(mobile);
+        if (mobile && viewMode === 'split') {
+            setViewMode('editor'); // Force single view on mobile
+        }
+    };
+    window.addEventListener('resize', handleResize);
+    // Initial check
+    handleResize();
+    return () => window.removeEventListener('resize', handleResize);
+  }, [viewMode]);
+
   useEffect(() => {
     const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (savedData) {
@@ -56,12 +72,6 @@ const App: React.FC = () => {
       }
     } else {
         setLastSaved({ content: DEFAULT_CONTENT, settings: settings });
-    }
-    
-    // Check screen size for default view mode
-    if (window.innerWidth < 768) {
-        setViewMode('editor');
-        setIsSidebarOpen(false); // Auto close sidebar on mobile
     }
   }, []);
 
@@ -249,6 +259,11 @@ const App: React.FC = () => {
       (window as any).scrollTimeout = setTimeout(() => isScrollingRef.current = null, 100);
   };
 
+  // Mobile: Handle view switching manually if needed
+  const toggleMobileView = () => {
+      setViewMode(prev => prev === 'editor' ? 'preview' : 'editor');
+  };
+
   return (
     <div 
         className="flex h-screen w-screen overflow-hidden bg-gray-100 font-sans relative" 
@@ -259,45 +274,65 @@ const App: React.FC = () => {
     >
       
       {/* Toast Container */}
-      <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[100] flex flex-col gap-2 pointer-events-none">
+      <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[100] flex flex-col gap-2 pointer-events-none w-full max-w-xs px-2">
         {toasts.map(toast => (
           <div key={toast.id} className={`
-             px-6 py-3 rounded-full shadow-xl text-white text-sm font-bold flex items-center gap-2 animate-bounce-in
+             px-4 py-3 rounded-full shadow-xl text-white text-sm font-bold flex items-center justify-center gap-2 animate-bounce-in
              ${toast.type === 'success' ? 'bg-emerald-600' : toast.type === 'error' ? 'bg-red-600' : 'bg-blue-600'}
           `}>
              <i className={`fa-solid ${toast.type === 'success' ? 'fa-check' : toast.type === 'error' ? 'fa-circle-exclamation' : 'fa-info-circle'}`}></i>
-             {toast.message}
+             <span className="truncate">{toast.message}</span>
           </div>
         ))}
       </div>
 
       {/* Drag Overlay */}
       {isDragging && (
-          <div className="fixed inset-0 z-[200] bg-blue-600/90 flex flex-col items-center justify-center text-white backdrop-blur-sm animate-fade-in pointer-events-none">
+          <div className="fixed inset-0 z-[200] bg-blue-600/90 flex flex-col items-center justify-center text-white backdrop-blur-sm animate-fade-in pointer-events-none p-4 text-center">
               <i className="fa-solid fa-cloud-arrow-up text-9xl mb-8 animate-bounce"></i>
               <h2 className="text-4xl font-bold">שחרר קובץ לטעינה</h2>
               <p className="mt-4 text-xl opacity-80">תומך בקבצי Markdown ו-Text</p>
           </div>
       )}
 
-      {/* Floating Sidebar Toggle (Visible when closed) */}
-      {!isSidebarOpen && (
-          <button 
-            onClick={() => setIsSidebarOpen(true)}
-            title="פתח סרגל צד (Ctrl+B)"
-            className="fixed bottom-6 left-6 z-[60] bg-blue-600 hover:bg-blue-700 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 group"
-          >
-              <i className="fa-solid fa-chevron-right text-xl"></i>
-              {/* Tooltip */}
-              <span className="absolute left-full ml-3 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                  פתח תפריט (Ctrl+B)
-              </span>
-          </button>
+      {/* Floating Controls for Mobile */}
+      <div className="fixed bottom-6 left-6 z-[60] flex gap-3">
+          {/* Sidebar Toggle */}
+          {!isSidebarOpen && (
+            <button 
+                onClick={() => setIsSidebarOpen(true)}
+                title="פתח תפריט"
+                className="bg-blue-600 hover:bg-blue-700 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+            >
+                <i className="fa-solid fa-bars text-xl"></i>
+            </button>
+          )}
+
+          {/* Mobile View Switcher (Only visible on mobile) */}
+          {isMobile && !isSidebarOpen && (
+              <button 
+                onClick={toggleMobileView}
+                title={viewMode === 'editor' ? 'עבור לתצוגה מקדימה' : 'עבור לעורך'}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+              >
+                  <i className={`fa-solid ${viewMode === 'editor' ? 'fa-eye' : 'fa-pen'} text-xl`}></i>
+              </button>
+          )}
+      </div>
+
+      {/* Mobile Backdrop */}
+      {isMobile && isSidebarOpen && (
+        <div 
+            className="fixed inset-0 bg-black/50 z-[40] backdrop-blur-sm transition-opacity"
+            onClick={() => setIsSidebarOpen(false)}
+        />
       )}
 
-      {/* Sidebar Container */}
+      {/* Sidebar Container - Responsive Behavior */}
       <div 
-        className={`flex-none z-50 h-full no-print shadow-xl transition-all duration-300 ease-in-out bg-white overflow-hidden
+        className={`
+            h-full bg-white shadow-xl z-[50] transition-all duration-300 ease-in-out flex-none overflow-hidden
+            ${isMobile ? 'fixed top-0 right-0 bottom-0' : 'relative'}
             ${isSidebarOpen ? 'w-80 translate-x-0' : 'w-0 -translate-x-full opacity-0'}
         `}
       >
@@ -312,21 +347,24 @@ const App: React.FC = () => {
           onReset={handleReset}
           hasUnsavedChanges={hasUnsavedChanges}
           viewMode={viewMode}
-          onViewModeChange={setViewMode}
+          onViewModeChange={(mode) => {
+              setViewMode(mode);
+              if (isMobile) setIsSidebarOpen(false); // Auto close sidebar on mobile selection
+          }}
           isSidebarOpen={isSidebarOpen}
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         />
       </div>
 
       {/* Main Area */}
-      <div className="flex-1 flex flex-col md:flex-row h-full overflow-hidden relative">
+      <div className="flex-1 flex flex-col md:flex-row h-full overflow-hidden relative bg-gray-100">
         
         {/* Preview Area (Left) */}
         <div 
             ref={previewContainerRef}
             onScroll={handlePreviewScroll}
             className={`
-                h-full relative z-0 border-r border-gray-300 transition-all duration-300 overflow-y-auto custom-scrollbar
+                h-full relative z-0 md:border-r border-gray-300 transition-all duration-300 overflow-y-auto custom-scrollbar
                 ${viewMode === 'preview' ? 'w-full block' : viewMode === 'split' ? 'hidden md:block md:w-1/2' : 'hidden'}
             `}
         >

@@ -329,6 +329,14 @@ const Preview: React.FC<PreviewProps> = ({ content, settings }) => {
         display: block;
       }
 
+      /* MOBILE OVERRIDES FOR PAPER PADDING */
+      @media screen and (max-width: 768px) {
+        .preview-content {
+           font-size: 16px !important; /* Force readable text on mobile */
+        }
+        .preview-content h1 { font-size: 1.6em !important; }
+      }
+
       /* INJECT COMPRESSED OVERRIDES AT THE END */
       ${compressedCSS}
     `;
@@ -515,14 +523,16 @@ const Preview: React.FC<PreviewProps> = ({ content, settings }) => {
   const containerBg = THEME_CONFIGS[settings.theme].backgroundColor;
 
   return (
-    <div className="h-full bg-gray-100 overflow-y-auto p-4 md:p-8 custom-scrollbar block" id="preview-container">
+    <div className="h-full bg-gray-100 overflow-y-auto p-2 md:p-8 custom-scrollbar block" id="preview-container">
       {/* Key prop ensures style tag is re-mounted when settings change */}
       <style key={`${settings.theme}-${settings.fontSize}-${settings.lineHeight}-${settings.direction}-${settings.isCompressed}`}>{generateCustomStyles()}</style>
       
       <div 
         className="mx-auto shadow-xl min-h-[29.7cm] w-full max-w-[21cm] transition-all duration-300 ease-in-out box-border preview-page"
         style={{
-          padding: settings.isCompressed ? '5mm' : `${settings.margins * 4}px`,
+          // Use CSS variables or calc for mobile responsiveness handled via style injection mostly, 
+          // but here we clamp the padding for mobile directly in JS for the container
+          padding: settings.isCompressed ? '5mm' : (window.innerWidth < 768 ? '15px' : `${settings.margins * 4}px`),
           backgroundColor: containerBg
         }}
       >
