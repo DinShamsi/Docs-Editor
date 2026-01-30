@@ -17,6 +17,10 @@ const Editor: React.FC<EditorProps> = ({ value, onChange, direction }) => {
         dir={direction}
         placeholder="הדבק או כתוב את הטקסט כאן... השתמש ב-$ לנוסחאות"
         spellCheck={false}
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        data-grammarly="false"
       />
     </div>
   );

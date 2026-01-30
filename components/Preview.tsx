@@ -11,6 +11,12 @@ declare global {
   }
 }
 
+interface TOCItem {
+  id: string;
+  text: string;
+  level: number;
+}
+
 const Preview: React.FC<PreviewProps> = ({ content, settings }) => {
   const previewRef = useRef<HTMLDivElement>(null);
   
@@ -33,7 +39,7 @@ const Preview: React.FC<PreviewProps> = ({ content, settings }) => {
     // If compressed, we force specific tight values, ignoring some sliders
     const fontSize = settings.isCompressed ? '10.5px' : `${settings.fontSize}px`;
     const lineHeight = settings.isCompressed ? '1.15' : settings.lineHeight;
-    const padding = settings.isCompressed ? '5mm' : `${settings.margins * 4}px`; // Minimal padding for compressed
+    // Minimal padding for compressed
     
     const compressedCSS = settings.isCompressed ? `
         /* Smart 2-Column Layout */
@@ -44,8 +50,11 @@ const Preview: React.FC<PreviewProps> = ({ content, settings }) => {
         }
         
         /* Main Title Spans All Columns */
-        .doc-header {
+        .doc-header, .toc-container {
             column-span: all;
+        }
+        
+        .doc-header {
             margin-bottom: 0.5em !important;
             padding-bottom: 0.5em !important;
         }
@@ -80,13 +89,16 @@ const Preview: React.FC<PreviewProps> = ({ content, settings }) => {
         }
 
         /* Prevent breaking inside boxes */
-        .theory, .solution, table, pre, .katex-display {
+        .theory, .solution, table, pre, .katex-display, .toc-container {
             break-inside: avoid;
             page-break-inside: avoid;
         }
     ` : '';
 
     return `
+      html {
+        scroll-behavior: smooth;
+      }
       .preview-content {
         font-family: ${themeConfig.bodyFontFamily};
         line-height: ${lineHeight};
@@ -134,6 +146,53 @@ const Preview: React.FC<PreviewProps> = ({ content, settings }) => {
         opacity: 0.8;
         margin: 0;
       }
+      
+      /* --- Table of Contents Styles --- */
+      .toc-container {
+        background-color: ${themeConfig.backgroundColor === '#ffffff' ? '#f8fafc' : 'rgba(0,0,0,0.03)'};
+        border: 1px solid ${themeConfig.borderColor};
+        border-right: 4px solid ${themeConfig.accentColor}; /* Significant RTL border */
+        padding: 1em;
+        margin-bottom: 2em;
+        border-radius: 6px;
+        unicode-bidi: isolate;
+      }
+      .toc-title {
+        font-family: ${themeConfig.headerFontFamily};
+        font-weight: bold;
+        font-size: 1.1em;
+        margin-bottom: 0.5em;
+        color: ${themeConfig.headingColor};
+        border-bottom: 1px solid ${themeConfig.borderColor};
+        padding-bottom: 0.3em;
+      }
+      .toc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .toc-item {
+        margin-bottom: 0.3em;
+      }
+      .toc-item.level-1 {
+        font-weight: 600;
+      }
+      .toc-item.level-2 {
+        font-weight: normal;
+        padding-inline-start: 1.5em; /* Indentation */
+        font-size: 0.95em;
+        opacity: 0.9;
+      }
+      .toc-link {
+        color: ${themeConfig.textColor};
+        text-decoration: none;
+        transition: color 0.2s;
+        cursor: pointer;
+      }
+      .toc-link:hover {
+        color: ${themeConfig.accentColor};
+        text-decoration: underline;
+      }
 
       /* KaTeX Fixes */
       .katex {
@@ -166,6 +225,7 @@ const Preview: React.FC<PreviewProps> = ({ content, settings }) => {
         margin-top: 1.5em;
         margin-bottom: 0.8em;
         unicode-bidi: isolate;
+        scroll-margin-top: 1em; /* Ensure anchor doesn't stick to top edge */
       }
       
       .preview-content h1 { font-size: 1.8em; border-bottom: 2px solid ${themeConfig.borderColor}; padding-bottom: 0.3em; }
@@ -274,6 +334,38 @@ const Preview: React.FC<PreviewProps> = ({ content, settings }) => {
     `;
   };
 
+  // Logic to auto-scale large math formulas
+  const scaleMathElements = () => {
+    if (!previewRef.current) return;
+    
+    // We target the containers we inject, or katex-display directly
+    const mathContainers = previewRef.current.querySelectorAll('.katex-display');
+    
+    mathContainers.forEach((el) => {
+        const element = el as HTMLElement;
+        const parent = element.parentElement;
+        
+        if (!parent) return;
+
+        // Reset first to measure correctly
+        element.style.transform = 'none';
+        element.style.width = 'auto';
+        
+        const parentWidth = parent.clientWidth;
+        const elementWidth = element.scrollWidth;
+        
+        // If element is wider than parent (with small tolerance)
+        if (elementWidth > parentWidth && parentWidth > 0) {
+             const scale = parentWidth / elementWidth;
+             // Apply scale
+             element.style.transform = `scale(${scale})`;
+             element.style.transformOrigin = 'center'; // Center scale is usually best for centered equations
+             element.style.width = '100%'; // Ensure it takes full width of container
+             element.style.overflow = 'hidden'; // Hide any potential overflow
+        }
+    });
+  };
+
   useEffect(() => {
     if (!previewRef.current) return;
 
@@ -282,10 +374,38 @@ const Preview: React.FC<PreviewProps> = ({ content, settings }) => {
        return; 
     }
 
+    // Configure Marked
     marked.setOptions({
       breaks: true,
       gfm: true,
     });
+    
+    // Custom Renderer to capture headings and add IDs
+    const tocData: TOCItem[] = [];
+    const renderer = new marked.Renderer();
+    
+    // FIX: Using correct signature (text, level) instead of object destructuring
+    renderer.heading = (text, level) => {
+      // Ensure text is a string to prevent crashes
+      const safeText = String(text || '');
+      
+      // Create a slug for the ID
+      const id = safeText
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^\w\u0590-\u05FF\-]+/g, '') // Keep Hebrew chars, English chars, numbers, hyphens
+        + '-' + Math.floor(Math.random() * 1000); // Random suffix to ensure uniqueness
+
+      // Add to TOC data if H1 or H2
+      if (level === 1 || level === 2) {
+        tocData.push({ id, text: safeText, level });
+      }
+
+      return `<h${level} id="${id}">${safeText}</h${level}>`;
+    };
+
+    // Use the custom renderer for this parse
+    marked.use({ renderer });
 
     const mathSegments: { id: string, tex: string, display: boolean }[] = [];
     
@@ -305,24 +425,43 @@ const Preview: React.FC<PreviewProps> = ({ content, settings }) => {
 
     // 2. PRE-PROCESS HTML BLOCKS
     // This fixes the issue where Markdown (like **bold**) inside <div class="theory"> is ignored.
-    // We explicitly find these blocks and parse their inner content as Markdown.
     const customBlocks = ['theory', 'solution'];
     customBlocks.forEach(cls => {
         const regex = new RegExp(`<div class="${cls}">([\\s\\S]*?)<\\/div>`, 'gi');
         processedContent = processedContent.replace(regex, (match, innerText) => {
-            // Parse inner text. Note: Math placeholders are safe as they are just text IDs here.
             const parsedInner = marked.parse(innerText) as string;
-            // Return re-constructed HTML. Main parser will treat this as an HTML block and skip it, preserving our parsed inner content.
             return `<div class="${cls}">\n${parsedInner}\n</div>\n`;
         });
     });
 
     // 3. MAIN MARKDOWN PARSE
-    // Handle the rest of the document (and wrap properly)
+    // Handle the rest of the document. marked supports HTML by default.
     processedContent = processedContent.replace(/<\/div>/gi, '</div>\n\n');
     let rawHtml = marked.parse(processedContent) as string;
     
-    // 4. RESTORE MATH
+    // 4. GENERATE TOC HTML (If enabled)
+    let tocHtml = '';
+    if (settings.showTOC && tocData.length > 0) {
+        const listItems = tocData.map(item => `
+            <li class="toc-item level-${item.level}">
+                <a href="#${item.id}" class="toc-link">${item.text}</a>
+            </li>
+        `).join('');
+        
+        tocHtml = `
+            <div class="toc-container">
+                <div class="toc-title">תוכן עניינים</div>
+                <ul class="toc-list">
+                    ${listItems}
+                </ul>
+            </div>
+        `;
+    }
+
+    // 5. COMBINE & RESTORE MATH
+    // We add the TOC *before* restoring math, so any math in the TOC titles also gets rendered!
+    let finalHtml = tocHtml + rawHtml;
+
     mathSegments.forEach(({ id, tex, display }) => {
       try {
         const rendered = window.katex.renderToString(tex, {
@@ -337,10 +476,10 @@ const Preview: React.FC<PreviewProps> = ({ content, settings }) => {
           ? `<div dir="ltr" style="display:block; text-align:center; margin: 1em 0;">${rendered}</div>`
           : `<span dir="ltr" style="display:inline-block;">${rendered}</span>`;
 
-        rawHtml = rawHtml.replace(id, () => wrapped);
+        finalHtml = finalHtml.replace(new RegExp(id, 'g'), () => wrapped);
       } catch (e) {
          console.error("KaTeX error:", e);
-         rawHtml = rawHtml.replace(id, () => `<span style="color:red; font-family:monospace;">${tex}</span>`);
+         finalHtml = finalHtml.replace(new RegExp(id, 'g'), () => `<span style="color:red; font-family:monospace;">${tex}</span>`);
       }
     });
 
@@ -355,9 +494,21 @@ const Preview: React.FC<PreviewProps> = ({ content, settings }) => {
            </div>` 
         : '';
 
-    previewRef.current.innerHTML = headerHtml + rawHtml;
+    previewRef.current.innerHTML = headerHtml + finalHtml;
+    
+    // 6. Run auto-scaling for math
+    setTimeout(scaleMathElements, 0);
 
-  }, [content, settings.theme, settings.title, settings.showDate, settings.direction, settings.isCompressed]);
+  }, [content, settings.theme, settings.title, settings.showDate, settings.showTOC, settings.direction, settings.isCompressed]);
+
+  // Add Resize Listener to re-scale math on window resize
+  useEffect(() => {
+     const handleResize = () => {
+         requestAnimationFrame(scaleMathElements);
+     };
+     window.addEventListener('resize', handleResize);
+     return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const containerBg = THEME_CONFIGS[settings.theme].backgroundColor;
 

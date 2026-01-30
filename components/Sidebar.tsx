@@ -65,17 +65,30 @@ const Sidebar: React.FC<SidebarProps> = ({ settings, onUpdate, onExport, onPrint
                 placeholder="הכנס כותרת ראשית..."
                 className="w-full p-2 border border-gray-300 bg-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-800"
             />
-            <div className="flex justify-between items-start">
-                <p className="text-[10px] text-gray-400">כותרת זו תופיע בראש הדוח</p>
-                <div className="flex items-center gap-1.5">
+            
+            <div className="flex flex-col gap-2 mt-2">
+                {/* Date Checkbox */}
+                <div className="flex items-center gap-2">
                     <input 
                         type="checkbox" 
                         id="showDate"
                         checked={settings.showDate}
                         onChange={(e) => handleChange('showDate', e.target.checked)}
-                        className="w-3.5 h-3.5 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                        className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
                     />
-                    <label htmlFor="showDate" className="text-xs text-gray-600 cursor-pointer select-none">תאריך</label>
+                    <label htmlFor="showDate" className="text-xs text-gray-600 cursor-pointer select-none">הצג תאריך</label>
+                </div>
+
+                {/* TOC Checkbox */}
+                 <div className="flex items-center gap-2">
+                    <input 
+                        type="checkbox" 
+                        id="showTOC"
+                        checked={settings.showTOC}
+                        onChange={(e) => handleChange('showTOC', e.target.checked)}
+                        className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                    />
+                    <label htmlFor="showTOC" className="text-xs text-gray-600 cursor-pointer select-none font-medium">הצג תוכן עניינים (H1, H2)</label>
                 </div>
             </div>
         </div>

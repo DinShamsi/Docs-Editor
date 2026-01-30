@@ -11,6 +11,7 @@ const App: React.FC = () => {
   const [settings, setSettings] = useState<DocSettings>({
     title: 'דוח מעבדה: ניתוח מערכות לינאריות',
     showDate: true,
+    showTOC: false, // Default: No TOC
     theme: ThemeType.ACADEMIC,
     fontSize: 16,
     margins: 10,
@@ -97,17 +98,28 @@ const App: React.FC = () => {
       target.innerHTML = '';
       const clone = source.cloneNode(true) as HTMLElement;
       
+      // Clean up UI-specific attributes
       clone.removeAttribute('class');
       clone.removeAttribute('id');
       
+      // Ensure print container styles
       clone.style.width = '100%';
       clone.style.height = 'auto';
       clone.style.overflow = 'visible';
       clone.style.position = 'relative';
       clone.style.display = 'block';
 
+      // --- SANITIZATION FOR PRINTING ---
+      // Removes iframes, scripts, and browser extension artifacts (Grammarly, etc.) that cause "red dots"
+      const elementsToRemove = clone.querySelectorAll('iframe, script, [data-grammarly-shadow-root], .grammarly-extension, grammarly-extension');
+      elementsToRemove.forEach(el => el.remove());
+      
       target.appendChild(clone);
-      window.print();
+      
+      // Small delay to ensure styles render before print dialog
+      setTimeout(() => {
+        window.print();
+      }, 50);
       
     } catch (error) {
       console.error("Print logic failed:", error);

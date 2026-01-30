@@ -17,6 +17,7 @@ export enum ThemeType {
 export interface DocSettings {
   title: string; // Document main title
   showDate: boolean; // Show current date under title
+  showTOC: boolean; // Show Table of Contents
   theme: ThemeType;
   fontSize: number; // in px
   margins: number; // in mm roughly (padding scale)
