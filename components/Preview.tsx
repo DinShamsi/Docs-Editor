@@ -251,8 +251,11 @@ const Preview: React.FC<PreviewProps> = ({ content, settings, zoom, onZoomChange
       }
       .katex-display {
         margin: 1em 0;
-        overflow-x: auto;
+        /* UPDATED: Prevent scrolling, we will scale instead */
+        overflow-x: hidden;
         overflow-y: hidden;
+        max-width: 100%;
+        padding: 0.2em 0;
       }
       strong .katex, b .katex, h1 .katex, h2 .katex, h3 .katex, h4 .katex, h5 .katex, h6 .katex, .important .katex {
          font-weight: bold !important;
@@ -572,34 +575,44 @@ const Preview: React.FC<PreviewProps> = ({ content, settings, zoom, onZoomChange
     `;
   };
 
-  // Logic to auto-scale large math formulas
+  // UPDATED: Logic to auto-scale large math formulas (Shrink-to-Fit)
   const scaleMathElements = () => {
     if (!previewRef.current) return;
     
-    // We target the containers we inject, or katex-display directly
+    // Select all display math blocks
     const mathContainers = previewRef.current.querySelectorAll('.katex-display');
     
     mathContainers.forEach((el) => {
         const element = el as HTMLElement;
-        const parent = element.parentElement;
+        const parent = element.parentElement; // The wrapper div
         
         if (!parent) return;
 
-        // Reset first to measure correctly
+        // 1. Reset Styles to measure "Natural" width
         element.style.transform = 'none';
-        element.style.width = 'auto';
+        // Force max-content to get the real width of the equation without wrapping
+        element.style.width = 'max-content';
+        element.style.maxWidth = 'none';
+        element.style.margin = '0 auto'; // Try to keep standard centering behavior if possible
+
+        // 2. Measure widths
+        const availableWidth = parent.clientWidth; 
+        const formulaWidth = element.scrollWidth; 
         
-        const parentWidth = parent.clientWidth;
-        const elementWidth = element.scrollWidth;
-        
-        // If element is wider than parent (with small tolerance)
-        if (elementWidth > parentWidth && parentWidth > 0) {
-             const scale = parentWidth / elementWidth;
-             // Apply scale
+        // 3. Scale if formula is wider than available space
+        if (formulaWidth > availableWidth && availableWidth > 0) {
+             const scale = availableWidth / formulaWidth;
+             
              element.style.transform = `scale(${scale})`;
-             element.style.transformOrigin = 'center'; // Center scale is usually best for centered equations
-             element.style.width = '100%'; // Ensure it takes full width of container
-             element.style.overflow = 'hidden'; // Hide any potential overflow
+             // CRITICAL FIX: Align to left when scaling down to prevent "shrinking towards center" which moves content out of view
+             // Since we scaled it to exactly fill the width, left alignment ensures it starts at x=0 and ends at x=width.
+             element.style.transformOrigin = 'left center'; 
+             
+             // Keep width as max-content so it renders fully internally
+        } else {
+             // If it fits, we allow standard behavior
+             element.style.width = '100%'; // Allow it to fill container (KaTeX handles centering)
+             element.style.transform = 'none';
         }
     });
   };
@@ -717,8 +730,9 @@ const Preview: React.FC<PreviewProps> = ({ content, settings, zoom, onZoomChange
         });
         
         // Wrap in spans/divs to ensure layout stability
+        // UPDATED: Added width:100% and overflow:hidden to the wrapper to support shrink-to-fit logic
         const wrapped = display 
-          ? `<div dir="ltr" style="display:block; text-align:center; margin: 1em 0;">${rendered}</div>`
+          ? `<div dir="ltr" style="display:block; text-align:center; margin: 1em 0; width: 100%; overflow: hidden;">${rendered}</div>`
           : `<span dir="ltr" style="display:inline-block;">${rendered}</span>`;
 
         finalHtml = finalHtml.replace(new RegExp(id, 'g'), () => wrapped);
