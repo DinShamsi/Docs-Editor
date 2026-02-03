@@ -21,10 +21,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Alef:wght@400;700&family=Archivo+Black&family=Arimo:wght@400;700&family=Assistant:wght@300;400;600;700&family=David+Libre:wght@400;500;700&family=Frank+Ruhl+Libre:wght@400;500;700&family=Heebo:wght@300;400;500;700;800&family=Hind:wght@300;400;500;600;700&family=IBM+Plex+Sans+Hebrew:wght@300;400;600&family=IBM+Plex+Sans:wght@300;400;500;700&family=IBM+Plex+Serif:wght@300;400;500;700&family=Inter:wght@300;400;500;700&family=League+Spartan:wght@400;700&family=Libre+Baskerville:wght@400;700&family=Lora:wght@400;500;600;700&family=Montserrat:wght@300;400;500;700&family=Noto+Serif+Hebrew:wght@400;700&family=Nunito:wght@300;400;600;700&family=Open+Sans:wght@300;400;600;700&family=Playfair+Display:wght@400;600;700&family=Raleway:wght@300;400;600;700&family=Roboto:wght@300;400;500&family=Rubik:wght@300;400;500;700&family=Secular+One&family=Ubuntu:wght@300;400;500;700&family=Varela+Round&display=swap" rel="stylesheet">
 
     <style>
-      /* CRITICAL: Remove Browser Headers/Footers globally */
+      /* CRITICAL: Set safe margins for printing globally */
       @page {
-        margin: 0;
-        size: auto;
+        size: A4;
+        margin: 5mm !important;
       }
 
       body {
@@ -57,8 +57,7 @@
       @media print {
         /* 1. Reset Body to allow scrolling and full height */
         html, body {
-          margin: 0 !important;
-          padding: 0 !important;
+          /* Removed forced margins to allow browser/page settings to take precedence */
           background: white !important;
           overflow: visible !important;
           height: 100% !important;
@@ -79,7 +78,8 @@
           width: 100%;
           min-height: 100%;
           margin: 0;
-          padding: 0;
+          padding: 2mm; /* Added internal padding for safety */
+          box-sizing: border-box; /* Ensure padding fits in width */
           z-index: 9999;
           visibility: visible;
           background: white;
