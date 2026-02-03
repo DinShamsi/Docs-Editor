@@ -88,8 +88,8 @@ const Preview: React.FC<PreviewProps> = ({ content, settings, zoom, onZoomChange
                 column-rule: 1px solid #e5e7eb;
             }
             
-            /* Main Title Spans All Columns */
-            .doc-header, .toc-container {
+            /* Main Title and Page Breaks Span All Columns */
+            .doc-header, .toc-container, .page-break {
                 column-span: all;
             }
             
@@ -529,8 +529,10 @@ const Preview: React.FC<PreviewProps> = ({ content, settings, zoom, onZoomChange
       /* Actual Page Break for Print */
       @media print {
         .page-break {
-          height: 0;
+          height: 1px;
+          min-height: 1px;
           margin: 0;
+          margin-bottom: -1px;
           border: none;
           background: transparent;
           display: block;

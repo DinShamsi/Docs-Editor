@@ -97,10 +97,13 @@
           page-break-after: always !important;
           break-after: page !important;
           display: block;
-          height: 0;
-          margin: 0;
+          /* Fix for Chrome ignoring 0-height elements in multi-column layouts */
+          height: 1px; 
+          min-height: 1px;
+          margin-bottom: -1px;
           column-span: all !important; /* Forces break across all columns */
           width: 100%;
+          visibility: hidden;
         }
         
         /* Hide scrollbars in print */
