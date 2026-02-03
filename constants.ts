@@ -61,16 +61,29 @@ Act as an expert academic document formatter. Your task is to take the provided 
      $$
 
 3. **Special Styling (HTML Classes):**
-   - **Definitions, Theorems, Theory:** Wrap the entire block in:
-     \`<div class="theory"> ...content... </div>\`
-   - **Solutions, Proofs, Examples:** Wrap the entire block in:
-     \`<div class="solution"> ...content... </div>\`
-   - **Important Highlights:** Wrap specific words/phrases in:
-     \`<span class="important"> ...text... </span>\`
+   - **Definitions/Theory:** \`<div class="theory"> ...content... </div>\`
+   - **Solutions/Answers:** \`<div class="solution"> ...content... </div>\`
+   - **Examples:** \`<div class="example"> ...content... </div>\`
+   - **Proofs:** \`<div class="proof"> ...content... </div>\`
+   - **Warnings/Alerts:** \`<div class="warning"> ...content... </div>\`
+   - **Code/Terminal:** \`<div class="code-snippet"> ...content... </div>\`
+   - **Important Highlights:** \`<span class="important"> ...text... </span>\`
+   - **Captions:** \`<span class="caption"> Figure 1: Description </span>\`
 
-4. **Tables:**
+4. **Advanced Layouts:**
+   - **Two Columns:** Use for side-by-side comparisons or images next to text.
+     \`<div class="two-columns">\`
+       \`<div> ...left content... </div>\`
+       \`<div> ...right content... </div>\`
+     \`</div>\`
+   - **Inline Lists:** Horizontal lists for tags or short items.
+     \`<div class="inline-list"> - Item 1 - Item 2 </div>\`
+   - **Side Notes:** Floating small note (use sparingly).
+     \`<div class="side-note"> ...note... </div>\`
+
+5. **Tables:**
    - Use standard Markdown table syntax.
-   - Ensure columns are aligned correctly.
+   - For compact data tables, wrap the Markdown table in: \`<div class="compact-table"> ...md table... </div>\`
 
 ### INPUT TEXT TO FORMAT:
 [PASTE YOUR TEXT HERE]
@@ -121,39 +134,7 @@ export const THEME_CONFIGS: Record<ThemeType, ThemeConfig> = {
     accentColor: '#8b5cf6',
     isColorful: false
   },
-  [ThemeType.STARTUP]: {
-    headerFontFamily: '"Heebo", sans-serif',
-    bodyFontFamily: '"Heebo", sans-serif',
-    headingColor: '#be185d', // Pink-700
-    borderColor: '#fbcfe8',
-    backgroundColor: '#ffffff',
-    textColor: '#4b5563',
-    accentColor: '#ec4899',
-    isColorful: false
-  },
-  [ThemeType.NATURE]: {
-    headerFontFamily: '"Alef", sans-serif',
-    bodyFontFamily: '"Alef", sans-serif',
-    headingColor: '#15803d', // Green-700
-    borderColor: '#bbf7d0',
-    backgroundColor: '#ffffff',
-    textColor: '#14532d',
-    accentColor: '#22c55e',
-    isColorful: false
-  },
-  [ThemeType.CLASSIC]: {
-    headerFontFamily: '"Frank Ruhl Libre", serif',
-    bodyFontFamily: '"Frank Ruhl Libre", serif',
-    headingColor: '#451a03', // Amber-950
-    borderColor: '#d6d3d1',
-    backgroundColor: '#ffffff',
-    textColor: '#292524',
-    accentColor: '#78350f',
-    isColorful: false
-  },
-
-  // --- NEW THEMES ---
-
+  
   [ThemeType.CLEAN]: {
     headerFontFamily: '"IBM Plex Sans Hebrew", sans-serif',
     bodyFontFamily: '"Assistant", sans-serif',
@@ -207,5 +188,144 @@ export const THEME_CONFIGS: Record<ThemeType, ThemeConfig> = {
     textColor: '#1f2937',
     accentColor: '#dc2626', // Red accents (Like news)
     isColorful: false
+  },
+
+  // Remaining Extra Themes
+  [ThemeType.FOREST]: {
+    headerFontFamily: '"Heebo", sans-serif',
+    bodyFontFamily: '"Assistant", sans-serif',
+    headingColor: '#2D4628',
+    borderColor: '#8FBC8F',
+    backgroundColor: '#ffffff',
+    textColor: '#2E2E2E',
+    accentColor: '#556B2F',
+    isColorful: false
+  },
+  [ThemeType.CRIMSON]: {
+    headerFontFamily: '"League Spartan", sans-serif',
+    bodyFontFamily: '"Libre Baskerville", serif',
+    headingColor: '#800000',
+    borderColor: '#CD5C5C',
+    backgroundColor: '#ffffff',
+    textColor: '#000000',
+    accentColor: '#A52A2A',
+    isColorful: false
+  },
+  [ThemeType.STANDARD]: {
+    headerFontFamily: '"Roboto", sans-serif',
+    bodyFontFamily: '"Open Sans", sans-serif',
+    headingColor: '#0056B3',
+    borderColor: '#B0C4DE',
+    backgroundColor: '#ffffff',
+    textColor: '#1C1C1C',
+    accentColor: '#004494',
+    isColorful: true
+  },
+  [ThemeType.COFFEE]: {
+    headerFontFamily: '"Raleway", sans-serif',
+    bodyFontFamily: '"Nunito", sans-serif',
+    headingColor: '#3D2B1F',
+    borderColor: '#D2B48C',
+    backgroundColor: '#ffffff',
+    textColor: '#404040',
+    accentColor: '#8B4513',
+    isColorful: false
+  },
+  [ThemeType.IMPACT]: {
+    headerFontFamily: '"Archivo Black", sans-serif',
+    bodyFontFamily: '"Hind", sans-serif',
+    headingColor: '#4B0082',
+    borderColor: '#9370DB',
+    backgroundColor: '#ffffff',
+    textColor: '#101010',
+    accentColor: '#6A5ACD',
+    isColorful: true
+  },
+  [ThemeType.SYSTEM]: {
+    headerFontFamily: '"Ubuntu", sans-serif',
+    bodyFontFamily: '"Arimo", sans-serif',
+    headingColor: '#3F51B5',
+    borderColor: '#C5CAE9',
+    backgroundColor: '#ffffff',
+    textColor: '#303030',
+    accentColor: '#303F9F',
+    isColorful: true
+  },
+
+  // --- HEBREW SPECIAL THEMES ---
+
+  [ThemeType.HEBREW_ACADEMIC]: {
+    headerFontFamily: '"David Libre", serif',
+    bodyFontFamily: '"Frank Ruhl Libre", serif',
+    headingColor: '#003366', // Deep Navy
+    borderColor: '#1e40af',  // Blue-800
+    backgroundColor: '#ffffff',
+    textColor: '#0f172a',    // Slate-900
+    accentColor: '#1e3a8a',  // Blue-900
+    isColorful: true         
+  },
+
+  [ThemeType.HEBREW_TECH]: {
+    headerFontFamily: '"Heebo", sans-serif',
+    bodyFontFamily: '"Assistant", sans-serif',
+    headingColor: '#0e7490', // Cyan-700
+    borderColor: '#a5f3fc',  // Cyan-200
+    backgroundColor: '#f8fafc', 
+    textColor: '#334155',    // Slate-700
+    accentColor: '#0ea5e9',  // Sky-500
+    isColorful: true         
+  },
+
+  [ThemeType.HEBREW_LITERATURE]: {
+    headerFontFamily: '"Noto Serif Hebrew", serif',
+    bodyFontFamily: '"Alef", sans-serif',
+    headingColor: '#7c2d12', // Orange-900 (Brownish)
+    borderColor: '#fdba74',  // Orange-300
+    backgroundColor: '#fffaf5', // Warm paper color
+    textColor: '#292524',    // Stone-800
+    accentColor: '#c2410c',  // Orange-700
+    isColorful: true         
+  },
+
+  // --- NEW ADDITIONS (High Contrast & Hebrew) ---
+
+  // 1. MINIMALIST (מינימליסטי)
+  // Clean, dark grey tones, modern professional look.
+  [ThemeType.MINIMALIST]: {
+    headerFontFamily: '"Arimo", sans-serif',
+    bodyFontFamily: '"Heebo", sans-serif',
+    headingColor: '#111827', // Gray 900
+    borderColor: '#9ca3af',  // Gray 400
+    backgroundColor: '#ffffff',
+    textColor: '#374151',    // Gray 700
+    accentColor: '#4b5563',  // Gray 600
+    isColorful: false
+  },
+
+  // 2. NATURE (טבע)
+  // Fresh greens, highly readable dark green text on white.
+  [ThemeType.NATURE]: {
+    headerFontFamily: '"Secular One", sans-serif',
+    bodyFontFamily: '"Assistant", sans-serif',
+    headingColor: '#14532d', // Green 900
+    borderColor: '#86efac',  // Green 300
+    backgroundColor: '#ffffff', 
+    textColor: '#1a2e05',    // Dark Moss
+    accentColor: '#16a34a',  // Green 600
+    isColorful: true
+  },
+
+  // 3. OFFICIAL (ממלכתי)
+  // Uses "Alef", the standard clear Israeli font. Navy and Gold.
+  [ThemeType.OFFICIAL]: {
+    headerFontFamily: '"Alef", sans-serif',
+    bodyFontFamily: '"Alef", sans-serif',
+    headingColor: '#1e3a8a', // Blue 900
+    borderColor: '#fcd34d',  // Amber 300 (Gold-ish)
+    backgroundColor: '#ffffff',
+    textColor: '#020617',    // Slate 950
+    accentColor: '#ca8a04',  // Yellow 600 (Dark Gold)
+    isColorful: true
   }
+
 };

@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { DocSettings, ThemeType, SidebarProps } from '../types';
+import { DocSettings, ThemeType, SidebarProps, CompressionLevel } from '../types';
 import { AI_PROMPT_GUIDE } from '../constants';
 
 const Sidebar: React.FC<SidebarProps> = ({ 
-    settings, onUpdate, onPrint, onSave, onDownload, onImport, onReset, 
+    settings, onUpdate, onPrint, onSave, onDownload, onExportHTML, onImport, onReset, 
     hasUnsavedChanges, viewMode, onViewModeChange, onToggleSidebar 
 }) => {
   const [copyStatus, setCopyStatus] = useState<string>('');
@@ -35,19 +35,43 @@ const Sidebar: React.FC<SidebarProps> = ({
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  // Compression Levels Config
+  const compressionOptions: { id: CompressionLevel, label: string, icon: string, desc: string }[] = [
+      { id: 'none', label: 'רגיל', icon: 'fa-align-justify', desc: 'ללא דחיסה' },
+      { id: 'low', label: 'קלה', icon: 'fa-compress', desc: 'נוח וחסכוני' },
+      { id: 'medium', label: 'בינונית', icon: 'fa-compress-arrows-alt', desc: 'מומלץ' },
+      { id: 'high', label: 'מקסי', icon: 'fa-minimize', desc: 'דחוס מאוד' },
+  ];
+
   // Theme definition for UI
   const themes = [
-    { id: ThemeType.ACADEMIC, label: 'אקדמי', desc: 'David Libre', color: 'bg-gray-100' },
-    { id: ThemeType.CLASSIC, label: 'קלאסי', desc: 'Frank Ruhl', color: 'bg-stone-200' },
+    // --- NEW HEBREW SPECIALS ---
+    { id: ThemeType.HEBREW_ACADEMIC, label: 'אקדמיה עברית', desc: 'דוד + פרנק ריהל', color: 'bg-blue-100 border-blue-300' },
+    { id: ThemeType.HEBREW_TECH, label: 'הייטק ת"א', desc: 'היבו + אסיסטנט', color: 'bg-cyan-100 border-cyan-300' },
+    { id: ThemeType.HEBREW_LITERATURE, label: 'ספרות ושירה', desc: 'נוטו + אלף', color: 'bg-orange-100 border-orange-300' },
+
+    // --- NEW VARIETY (Readable & Hebrew) ---
+    { id: ThemeType.MINIMALIST, label: 'מינימליסטי', desc: 'Arimo + Heebo', color: 'bg-gray-200 border-gray-400' },
+    { id: ThemeType.NATURE, label: 'טבע ירוק', desc: 'Secular + Assistant', color: 'bg-green-100 border-green-300' },
+    { id: ThemeType.OFFICIAL, label: 'ממלכתי', desc: 'Alef + Alef', color: 'bg-indigo-100 border-yellow-400' },
+
+    // Existing Preserved
+    { id: ThemeType.ACADEMIC, label: 'אקדמי רגיל', desc: 'David Libre', color: 'bg-gray-100' },
     { id: ThemeType.MODERN, label: 'מודרני', desc: 'Assistant', color: 'bg-blue-50' },
-    { id: ThemeType.TECH, label: 'הייטק', desc: 'Rubik', color: 'bg-purple-50' },
-    { id: ThemeType.CLEAN, label: 'נקי', desc: 'Plex Sans + Assistant', color: 'bg-slate-100' },
-    { id: ThemeType.ELEGANT, label: 'יוקרתי', desc: 'Noto Serif + Assistant', color: 'bg-rose-50' },
+    { id: ThemeType.TECH, label: 'טכנולוגי', desc: 'Rubik', color: 'bg-purple-50' },
+    { id: ThemeType.CLEAN, label: 'נקי', desc: 'Plex + Assistant', color: 'bg-slate-100' },
+    { id: ThemeType.ELEGANT, label: 'יוקרתי', desc: 'Noto Serif', color: 'bg-rose-50' },
     { id: ThemeType.BOLD, label: 'נועז', desc: 'Secular + Heebo', color: 'bg-amber-50' },
     { id: ThemeType.SOFT, label: 'רך', desc: 'Varela + Rubik', color: 'bg-violet-50' },
-    { id: ThemeType.NEWSPAPER, label: 'עיתון', desc: 'Frank Ruhl + Heebo', color: 'bg-red-50' },
-    { id: ThemeType.STARTUP, label: 'סטארטאפ', desc: 'Heebo', color: 'bg-pink-50' },
-    { id: ThemeType.NATURE, label: 'טבע', desc: 'Alef', color: 'bg-green-50' },
+    { id: ThemeType.NEWSPAPER, label: 'עיתון', desc: 'Frank Ruhl', color: 'bg-red-50' },
+    
+    // Remaining Extra
+    { id: ThemeType.FOREST, label: 'יער', desc: 'Heebo + Assistant', color: 'bg-green-100' },
+    { id: ThemeType.CRIMSON, label: 'ארגמן', desc: 'Spartan + Basker', color: 'bg-red-100' },
+    { id: ThemeType.STANDARD, label: 'סטנדרטי', desc: 'Roboto + Open Sans', color: 'bg-blue-100' },
+    { id: ThemeType.COFFEE, label: 'קפה', desc: 'Raleway + Nunito', color: 'bg-orange-100' },
+    { id: ThemeType.IMPACT, label: 'אימפקט', desc: 'Archivo + Hind', color: 'bg-purple-200' },
+    { id: ThemeType.SYSTEM, label: 'מערכת', desc: 'Ubuntu + Arimo', color: 'bg-indigo-50' },
   ];
 
   return (
@@ -141,28 +165,35 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
         </div>
 
-        {/* Smart Compression Toggle */}
+        {/* Smart Compression Selector */}
         <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-4 rounded-xl border border-indigo-100 shadow-sm">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <div className={`p-2 rounded-full ${settings.isCompressed ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-500'} transition-colors`}>
-                        <i className="fa-solid fa-minimize"></i>
-                    </div>
-                    <div>
-                        <span className="block text-sm font-bold text-gray-800">דחיסה חכמה</span>
-                        <span className="text-[10px] text-gray-500 block leading-tight">מקסימום תוכן במינימום מקום (2 טורים)</span>
-                    </div>
-                </div>
-                
-                <button 
-                    onClick={() => handleChange('isCompressed', !settings.isCompressed)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${settings.isCompressed ? 'bg-indigo-600' : 'bg-gray-300'}`}
-                >
-                    <span
-                        className={`${settings.isCompressed ? '-translate-x-6' : '-translate-x-1'} inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
-                    />
-                </button>
+            <label className="block text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <i className="fa-solid fa-minimize text-indigo-600"></i>
+                דחיסה חכמה (Layout)
+            </label>
+            
+            <div className="grid grid-cols-4 gap-1 bg-white p-1 rounded-lg border border-indigo-100">
+                {compressionOptions.map((opt) => (
+                    <button
+                        key={opt.id}
+                        onClick={() => handleChange('compressionLevel', opt.id)}
+                        className={`
+                            flex flex-col items-center justify-center py-2 rounded-md transition-all
+                            ${settings.compressionLevel === opt.id 
+                                ? 'bg-indigo-600 text-white shadow-md' 
+                                : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
+                            }
+                        `}
+                        title={opt.desc}
+                    >
+                        <i className={`fa-solid ${opt.icon} text-sm mb-1`}></i>
+                        <span className="text-[10px] font-bold">{opt.label}</span>
+                    </button>
+                ))}
             </div>
+             <p className="text-[10px] text-gray-500 mt-2 text-center">
+                {compressionOptions.find(o => o.id === settings.compressionLevel)?.desc}
+            </p>
         </div>
 
         {/* Actions Grid */}
@@ -196,14 +227,24 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <span className="text-sm">הדפס</span>
             </button>
 
-             {/* Download */}
+             {/* Export HTML */}
+             <button
+                type="button"
+                onClick={onExportHTML}
+                className="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-medium py-2 px-2 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2"
+            >
+                <i className="fa-brands fa-html5 text-orange-600"></i>
+                <span className="text-sm">HTML</span>
+            </button>
+
+             {/* Download Source */}
              <button
                 type="button"
                 onClick={onDownload}
                 className="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-medium py-2 px-2 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2"
             >
                 <i className="fa-solid fa-file-arrow-down text-sky-500"></i>
-                <span className="text-sm">הורד</span>
+                <span className="text-sm">מקור</span>
             </button>
 
             {/* Import */}
@@ -217,10 +258,10 @@ const Sidebar: React.FC<SidebarProps> = ({
             <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-medium py-2 px-2 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2"
+                className="col-span-2 w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-medium py-2 px-2 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2"
             >
                 <i className="fa-solid fa-file-import text-orange-500"></i>
-                <span className="text-sm">טען</span>
+                <span className="text-sm">טען קובץ</span>
             </button>
         </div>
 
@@ -272,10 +313,10 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Layout Settings (Disabled if Compressed) */}
-        <div className={`space-y-6 border-t border-gray-200 pt-6 transition-opacity ${settings.isCompressed ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+        <div className={`space-y-6 border-t border-gray-200 pt-6 transition-opacity ${settings.compressionLevel !== 'none' ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
           <h3 className="text-sm font-semibold text-gray-900 flex justify-between">
             הגדרות פריסה
-            {settings.isCompressed && <span className="text-xs text-indigo-600 font-normal">(מבוטל במצב דחיסה)</span>}
+            {settings.compressionLevel !== 'none' && <span className="text-xs text-indigo-600 font-normal">(אוטומטי בדחיסה)</span>}
           </h3>
 
           {/* Direction */}
@@ -352,33 +393,6 @@ const Sidebar: React.FC<SidebarProps> = ({
               onChange={(e) => handleChange('lineHeight', Number(e.target.value))}
               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
             />
-          </div>
-        </div>
-
-        {/* Legend for Special Classes */}
-        <div className="border-t border-gray-200 pt-6 space-y-2">
-          <h3 className="text-sm font-semibold text-gray-900 mb-2">מקרא מחלקות (CSS Classes)</h3>
-          <div className="text-xs text-gray-600 space-y-1">
-             <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-blue-100 border border-blue-400"></span>
-                <code className="bg-gray-100 px-1 rounded text-blue-700">.theory</code>
-                <span>הגדרה/תיאוריה</span>
-             </div>
-             <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-green-100 border border-green-400"></span>
-                <code className="bg-gray-100 px-1 rounded text-green-700">.solution</code>
-                <span>פתרון תרגיל</span>
-             </div>
-             <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-yellow-100 border border-yellow-400"></span>
-                <code className="bg-gray-100 px-1 rounded text-yellow-700">.important</code>
-                <span>הדגשה חשובה</span>
-             </div>
-             <div className="flex items-center gap-2">
-                <span className="w-3 h-3 border border-dashed border-gray-400"></span>
-                <code className="bg-gray-100 px-1 rounded text-gray-700">.page-break</code>
-                <span>מעבר עמוד</span>
-             </div>
           </div>
         </div>
 

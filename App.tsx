@@ -13,10 +13,15 @@ const App: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   
+  // New States for Features
+  const [zoom, setZoom] = useState<number>(1);
+  const [isSyncScroll, setIsSyncScroll] = useState<boolean>(false); // Changed default to false
+
   // Refs for Scroll Sync
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const isScrollingRef = useRef<'editor' | 'preview' | null>(null);
+  const scrollTimeoutRef = useRef<number | null>(null);
 
   const [settings, setSettings] = useState<DocSettings>({
     title: 'דוח מעבדה: ניתוח מערכות לינאריות',
@@ -27,7 +32,7 @@ const App: React.FC = () => {
     margins: 10,
     lineHeight: 1.5,
     direction: 'rtl',
-    isCompressed: false,
+    compressionLevel: 'none', 
   });
 
   const [lastSaved, setLastSaved] = useState<{content: string, settings: DocSettings} | null>(null);
@@ -63,8 +68,16 @@ const App: React.FC = () => {
         const parsed = JSON.parse(savedData);
         if (parsed.content && parsed.settings) {
           setContent(parsed.content);
-          setSettings(parsed.settings);
-          setLastSaved(parsed);
+          
+          // Migration Logic: Convert old boolean isCompressed to new enum
+          let loadedSettings = parsed.settings;
+          if ('isCompressed' in loadedSettings) {
+             loadedSettings.compressionLevel = loadedSettings.isCompressed ? 'medium' : 'none';
+             delete loadedSettings.isCompressed;
+          }
+
+          setSettings(loadedSettings);
+          setLastSaved({ content: parsed.content, settings: loadedSettings });
         }
       } catch (e) {
         console.error("Failed to parse saved data", e);
@@ -140,6 +153,59 @@ const App: React.FC = () => {
     addToast('קובץ המקור הורד למחשב', 'info');
   }, [content, settings.title]);
 
+  const handleExportHTML = useCallback(() => {
+    const previewContent = document.querySelector('.preview-content');
+    const styleTag = document.getElementById('preview-styles');
+
+    if (!previewContent || !styleTag) {
+        addToast('שגיאה ביצירת קובץ HTML', 'error');
+        return;
+    }
+
+    const htmlTemplate = `<!DOCTYPE html>
+<html lang="he" dir="${settings.direction}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${settings.title || 'מסמך'}</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Alef:wght@400;700&family=Archivo+Black&family=Arimo:wght@400;700&family=Assistant:wght@300;400;600;700&family=David+Libre:wght@400;500;700&family=Frank+Ruhl+Libre:wght@400;500;700&family=Heebo:wght@300;400;500;700;800&family=Hind:wght@300;400;500;600;700&family=IBM+Plex+Sans+Hebrew:wght@300;400;600&family=IBM+Plex+Sans:wght@300;400;500;700&family=IBM+Plex+Serif:wght@300;400;500;700&family=Inter:wght@300;400;500;700&family=League+Spartan:wght@400;700&family=Libre+Baskerville:wght@400;700&family=Lora:wght@400;500;600;700&family=Montserrat:wght@300;400;500;700&family=Noto+Serif+Hebrew:wght@400;700&family=Nunito:wght@300;400;600;700&family=Open+Sans:wght@300;400;600;700&family=Playfair+Display:wght@400;600;700&family=Raleway:wght@300;400;600;700&family=Roboto:wght@300;400;500&family=Rubik:wght@300;400;500;700&family=Secular+One&family=Ubuntu:wght@300;400;500;700&family=Varela+Round&display=swap" rel="stylesheet">
+    <!-- KaTeX -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <style>
+        body { margin: 0; padding: 20px; background: #f3f4f6; display: flex; justify-content: center; min-height: 100vh; }
+        .page-container { 
+            background: white; 
+            padding: ${previewContent.parentElement?.style.padding || '20px'};
+            max-width: 21cm; 
+            width: 100%; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); 
+            min-height: 29.7cm;
+        }
+        ${styleTag.innerHTML}
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <div class="preview-content">
+            ${previewContent.innerHTML}
+        </div>
+    </div>
+</body>
+</html>`;
+
+    const blob = new Blob([htmlTemplate], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${settings.title || 'document'}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    addToast('קובץ HTML נוצר בהצלחה', 'success');
+
+  }, [settings.title, settings.direction]);
+
   const handleImportSource = useCallback((newContent: string) => {
       setContent(newContent);
       addToast('הקובץ נטען בהצלחה', 'success');
@@ -204,7 +270,17 @@ const App: React.FC = () => {
 
     try {
       target.innerHTML = '';
-      const clone = source.cloneNode(true) as HTMLElement;
+      // Clone the source, but we need to ensure we grab the content, not the wrapper with zoom
+      const contentPage = source.querySelector('.preview-page');
+      
+      if (!contentPage) throw new Error("Preview page not found");
+
+      const clone = contentPage.cloneNode(true) as HTMLElement;
+      
+      // Reset transform for print
+      clone.style.transform = 'none';
+      clone.style.margin = '0';
+      clone.style.boxShadow = 'none';
       clone.removeAttribute('class');
       clone.removeAttribute('id');
       clone.style.width = '100%';
@@ -231,32 +307,46 @@ const App: React.FC = () => {
 
   // --- Scroll Sync Logic ---
   const handleEditorScroll = (percentage: number) => {
+      if (!isSyncScroll) return;
       if (isScrollingRef.current === 'preview') return;
+      
+      if (!previewContainerRef.current) return;
+      
       isScrollingRef.current = 'editor';
       
-      if (previewContainerRef.current) {
-          const targetScroll = (previewContainerRef.current.scrollHeight - previewContainerRef.current.clientHeight) * percentage;
-          previewContainerRef.current.scrollTop = targetScroll;
+      const scrollHeight = previewContainerRef.current.scrollHeight - previewContainerRef.current.clientHeight;
+      if (scrollHeight > 0) {
+        const targetScroll = scrollHeight * percentage;
+        previewContainerRef.current.scrollTop = targetScroll;
       }
       
-      clearTimeout((window as any).scrollTimeout);
-      (window as any).scrollTimeout = setTimeout(() => isScrollingRef.current = null, 100);
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      scrollTimeoutRef.current = window.setTimeout(() => {
+        isScrollingRef.current = null;
+      }, 100);
   };
 
   const handlePreviewScroll = (e: React.UIEvent<HTMLDivElement>) => {
+      if (!isSyncScroll) return;
       if (isScrollingRef.current === 'editor') return;
+      
+      if (!editorRef.current) return;
+      
       isScrollingRef.current = 'preview';
       
       const el = e.currentTarget;
-      const percentage = el.scrollTop / (el.scrollHeight - el.clientHeight);
+      const height = el.scrollHeight - el.clientHeight;
       
-      if (editorRef.current) {
-          const targetScroll = (editorRef.current.scrollHeight - editorRef.current.clientHeight) * percentage;
-          editorRef.current.scrollTop = targetScroll;
+      if (height > 0) {
+        const percentage = el.scrollTop / height;
+        const targetScroll = (editorRef.current.scrollHeight - editorRef.current.clientHeight) * percentage;
+        editorRef.current.scrollTop = targetScroll;
       }
       
-      clearTimeout((window as any).scrollTimeout);
-      (window as any).scrollTimeout = setTimeout(() => isScrollingRef.current = null, 100);
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      scrollTimeoutRef.current = window.setTimeout(() => {
+        isScrollingRef.current = null;
+      }, 100);
   };
 
   // Mobile: Handle view switching manually if needed
@@ -340,6 +430,7 @@ const App: React.FC = () => {
           settings={settings} 
           onUpdate={updateSettings}
           onExport={handlePrintExport} 
+          onExportHTML={handleExportHTML}
           onPrint={handlePrintExport}
           onSave={handleSave}
           onDownload={handleDownloadSource}
@@ -368,7 +459,12 @@ const App: React.FC = () => {
                 ${viewMode === 'preview' ? 'w-full block' : viewMode === 'split' ? 'hidden md:block md:w-1/2' : 'hidden'}
             `}
         >
-          <Preview content={content} settings={settings} />
+          <Preview 
+             content={content} 
+             settings={settings} 
+             zoom={zoom} 
+             onZoomChange={setZoom} 
+          />
         </div>
 
         {/* Editor Area (Right) */}
@@ -384,6 +480,11 @@ const App: React.FC = () => {
             direction={settings.direction} 
             scrollRef={editorRef}
             onScroll={handleEditorScroll}
+            isSyncScroll={isSyncScroll}
+            onToggleSyncScroll={() => {
+                setIsSyncScroll(!isSyncScroll);
+                addToast(!isSyncScroll ? 'גלילה מסונכרנת הופעלה' : 'גלילה מסונכרנת כבויה', 'info');
+            }}
           />
         </div>
 
