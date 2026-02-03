@@ -501,12 +501,48 @@ const Preview: React.FC<PreviewProps> = ({ content, settings, zoom, onZoomChange
 
       /* --- PRINT UTILITIES --- */
       
-      .page-break {
-        height: 1px;
-        background: transparent;
-        border: none;
-        margin: 0;
-        display: block;
+      /* Visual Page Break for Screen */
+      @media screen {
+        .page-break {
+          display: block;
+          margin: 2em 0;
+          height: 1px;
+          border: none;
+          border-bottom: 1px dashed #ccc;
+          text-align: center;
+          position: relative;
+          color: #999;
+          column-span: all;
+        }
+        .page-break::after {
+            content: "מעבר עמוד (הדפסה)";
+            font-size: 0.7em;
+            background: #fff; /* Match bg */
+            padding: 0 10px;
+            position: absolute;
+            top: -0.7em;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+      }
+
+      /* Actual Page Break for Print */
+      @media print {
+        .page-break {
+          height: 0;
+          margin: 0;
+          border: none;
+          background: transparent;
+          display: block;
+          column-span: all; /* Critical for Smart Compression */
+          break-after: page;
+          page-break-after: always;
+          visibility: hidden;
+        }
+        .page-break::after {
+            content: "";
+            display: none;
+        }
       }
 
       .no-break {
@@ -629,7 +665,7 @@ const Preview: React.FC<PreviewProps> = ({ content, settings, zoom, onZoomChange
 
     // 2. PRE-PROCESS HTML BLOCKS (Updated for new classes)
     // This fixes the issue where Markdown (like **bold**) inside <div class="..."> is ignored.
-    const customBlocks = ['theory', 'solution', 'example', 'proof', 'warning', 'two-columns', 'side-note', 'inline-list', 'compact-table', 'lead', 'text-center', 'no-break'];
+    const customBlocks = ['theory', 'solution', 'example', 'proof', 'warning', 'two-columns', 'side-note', 'inline-list', 'compact-table', 'lead', 'text-center', 'no-break', 'page-break'];
     customBlocks.forEach(cls => {
         // Regex handles attributes somewhat loosely to allow <div class="two-columns">...</div>
         const regex = new RegExp(`<div class="${cls}"[^>]*>([\\s\\S]*?)<\\/div>`, 'gi');

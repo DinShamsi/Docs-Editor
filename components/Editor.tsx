@@ -105,6 +105,7 @@ const Editor: React.FC<EditorProps> = ({ value, onChange, direction, onScroll, s
       { icon: 'fa-list-ol', label: 'מספור', action: () => insertText('\n1. ', '', 'פריט ממוספר') },
       { icon: 'fa-list-check', label: 'משימות', action: () => insertText('\n- [ ] ', '', 'משימה') },
       { icon: 'fa-minus', label: 'קו מפריד', action: () => insertText('\n---\n', '', '') },
+      { icon: 'fa-scissors', label: 'מעבר עמוד', action: () => insertText('\n<div class="page-break"></div>\n', '', '') },
       { icon: 'fa-square-root-variable', label: 'נוסחה', action: () => insertText('$', '$', 'E=mc^2') },
       { icon: 'fa-table', label: 'טבלה', action: () => insertText('\n| עמודה 1 | עמודה 2 |\n|---|---|\n| תוכן 1 | תוכן 2 |\n', '', '') },
       { icon: 'fa-quote-right', label: 'ציטוט', action: () => insertText('\n> ', '', 'ציטוט') },
